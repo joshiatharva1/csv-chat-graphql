@@ -1,0 +1,21 @@
+type Query {
+  rows: [DataRow!]!
+  rowsByColumnValue(columnName: String!, value: String!): [DataRow!]!
+  ask(question: String!): [DataRow!]!
+  askSmart(question: String!): AskResult!
+}
+
+type AskResult {
+  optimizedQuery: String!
+  rows: [DataRow!]!
+}
+
+type DataRow {
+  id: ID!
+  cells: [DataCell!]!
+}
+
+type DataCell {
+  columnName: String!
+  value: String!
+}

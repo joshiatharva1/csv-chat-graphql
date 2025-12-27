@@ -1,0 +1,824 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <title>CSV Chat GraphQL</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style>
+        :root {
+            --bg: #0f172a;
+            --card: #111827;
+            --card-soft: #020617;
+            --accent: #38bdf8;
+            --accent-soft: rgba(56, 189, 248, 0.1);
+            --text: #e5e7eb;
+            --muted: #9ca3af;
+            --border: #1f2937;
+            --danger: #f97373;
+            --success: #4ade80;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+                sans-serif;
+            background: radial-gradient(circle at top, #1e293b 0, #020617 55%);
+            color: var(--text);
+            display: flex;
+            align-items: stretch;
+            justify-content: center;
+        }
+
+        .shell {
+            width: 100%;
+            max-width: 1200px;
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .header-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .title-block {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .title {
+            font-size: 24px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .pill {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            padding: 3px 8px;
+            border-radius: 999px;
+            border: 1px solid rgba(148, 163, 184, 0.4);
+            color: var(--muted);
+        }
+
+        .subtitle {
+            font-size: 13px;
+            color: var(--muted);
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 999px;
+            background: var(--success);
+            box-shadow: 0 0 8px rgba(74, 222, 128, 0.8);
+        }
+
+        .status-text {
+            font-size: 12px;
+            color: var(--muted);
+        }
+
+        .status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 10px;
+            border-radius: 999px;
+            background: radial-gradient(circle at 0 0, rgba(34, 197, 94, 0.18), transparent),
+                        rgba(15, 23, 42, 0.95);
+            border: 1px solid rgba(34, 197, 94, 0.3);
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: minmax(0, 300px) minmax(0, 1fr);
+            gap: 16px;
+        }
+
+        @media (max-width: 900px) {
+            .grid {
+                grid-template-columns: minmax(0, 1fr);
+            }
+        }
+
+        .card {
+            background: radial-gradient(circle at top left, rgba(56, 189, 248, 0.12), transparent),
+                        radial-gradient(circle at bottom right, rgba(129, 140, 248, 0.18), transparent),
+                        linear-gradient(to bottom right, var(--card-soft), var(--card));
+            border-radius: 18px;
+            border: 1px solid rgba(148, 163, 184, 0.25);
+            padding: 16px;
+            box-shadow: 0 18px 60px rgba(0, 0, 0, 0.55);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .card-title {
+            font-size: 14px;
+            font-weight: 600;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            color: var(--muted);
+        }
+
+        .badge {
+            font-size: 11px;
+            padding: 2px 8px;
+            border-radius: 999px;
+            border: 1px solid rgba(148, 163, 184, 0.4);
+            color: var(--muted);
+        }
+
+        .label {
+            font-size: 12px;
+            color: var(--muted);
+            margin-bottom: 4px;
+        }
+
+        .input {
+            width: 100%;
+            font-size: 13px;
+            padding: 8px 9px;
+            border-radius: 10px;
+            border: 1px solid rgba(148, 163, 184, 0.35);
+            background: rgba(15, 23, 42, 0.85);
+            color: var(--text);
+            outline: none;
+        }
+
+        .input:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 1px rgba(56, 189, 248, 0.4);
+        }
+
+        .input::placeholder {
+            color: rgba(148, 163, 184, 0.7);
+        }
+
+        .textarea {
+            resize: vertical;
+            min-height: 60px;
+            max-height: 200px;
+        }
+
+        .btn-row {
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .btn {
+            font-size: 12px;
+            border-radius: 999px;
+            padding: 7px 12px;
+            border: 1px solid rgba(148, 163, 184, 0.4);
+            background: rgba(15, 23, 42, 0.9);
+            color: var(--text);
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .btn-primary {
+            border-color: rgba(56, 189, 248, 0.7);
+            background: radial-gradient(circle at 0 0, rgba(56, 189, 248, 0.3), transparent),
+                        rgba(15, 23, 42, 0.95);
+            color: white;
+        }
+
+        .btn:hover {
+            filter: brightness(1.1);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .pill-small {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            padding: 3px 8px;
+            border-radius: 999px;
+            border: 1px solid rgba(148, 163, 184, 0.35);
+            color: var(--muted);
+        }
+
+        .hint {
+            font-size: 11px;
+            color: var(--muted);
+            margin-top: 4px;
+        }
+
+        .results-card {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .results-header-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .results-controls {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .results-badge {
+            font-size: 11px;
+            padding: 2px 8px;
+            border-radius: 999px;
+            border: 1px solid rgba(148, 163, 184, 0.4);
+            color: var(--muted);
+        }
+
+        .results-summary {
+            font-size: 12px;
+            color: var(--muted);
+        }
+
+        .results-container {
+            border-radius: 12px;
+            border: 1px solid rgba(148, 163, 184, 0.35);
+            background: radial-gradient(circle at top left, rgba(15, 23, 42, 0.9), #020617);
+            max-height: 420px;
+            overflow: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+        }
+
+        thead {
+            position: sticky;
+            top: 0;
+            background: rgba(15, 23, 42, 0.98);
+            backdrop-filter: blur(10px);
+            z-index: 1;
+        }
+
+        th, td {
+            padding: 6px 10px;
+            border-bottom: 1px solid rgba(31, 41, 55, 0.85);
+            text-align: left;
+            white-space: nowrap;
+        }
+
+        th {
+            font-weight: 500;
+            color: rgba(156, 163, 175, 0.9);
+        }
+
+        tr:nth-child(even) td {
+            background: rgba(15, 23, 42, 0.8);
+        }
+
+        .tag {
+            font-size: 11px;
+            padding: 2px 6px;
+            border-radius: 999px;
+            border: 1px solid rgba(148, 163, 184, 0.4);
+            color: var(--muted);
+        }
+
+        .message {
+            font-size: 12px;
+            padding: 6px 8px;
+            border-radius: 8px;
+            border: 1px solid rgba(148, 163, 184, 0.45);
+            background: rgba(15, 23, 42, 0.95);
+            color: var(--muted);
+        }
+
+        .message-success {
+            border-color: rgba(74, 222, 128, 0.6);
+            color: #bbf7d0;
+        }
+
+        .message-error {
+            border-color: rgba(248, 113, 113, 0.7);
+            color: #fecaca;
+        }
+
+        .small-pill {
+            font-size: 11px;
+            padding: 2px 8px;
+            border-radius: 999px;
+            border: 1px solid rgba(148, 163, 184, 0.35);
+            color: var(--muted);
+        }
+
+        pre.optimized-query {
+            margin-top: 4px;
+            font-size: 11px;
+            background: rgba(15, 23, 42, 0.95);
+            border-radius: 8px;
+            padding: 6px 8px;
+            border: 1px solid rgba(148, 163, 184, 0.45);
+            overflow: auto;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body>
+<div class="shell">
+    <div class="header-row">
+        <div class="title-block">
+            <div class="title">
+                CSV Chat GraphQL
+                <span class="pill">Dynamic CSV → GraphQL</span>
+            </div>
+            <div class="subtitle">
+                Upload any CSV → query it using GraphQL or natural language.
+            </div>
+        </div>
+        <div class="status">
+            <span class="status-dot"></span>
+            <span class="status-text" id="backend-status">Backend: Connected (8081)</span>
+        </div>
+    </div>
+
+    <div class="grid">
+        <!-- Left column: Upload + Ask -->
+        <div class="card">
+            <div class="card-header">
+                <span class="card-title">CSV Upload</span>
+                <span class="badge">Step 1</span>
+            </div>
+            <form id="csv-upload-form">
+                <label class="label">CSV File</label>
+                <input
+                        type="file"
+                        id="csv-file"
+                        class="input"
+                        accept=".csv"
+                        required
+                />
+                <div class="hint">After restart, upload again (H2 in-memory DB).</div>
+
+                <div class="btn-row">
+                    <button type="submit" class="btn btn-primary" id="upload-btn">
+                        ⬆ Upload CSV
+                    </button>
+                </div>
+                <div id="upload-message" class="hint"></div>
+            </form>
+
+            <hr style="border: none; border-top: 1px solid rgba(31, 41, 55, 0.8); margin: 14px 0;" />
+
+            <div class="card-header">
+                <span class="card-title">Ask a Question</span>
+                <span class="badge">Step 2</span>
+            </div>
+            <label class="label">Question (Natural Language)</label>
+            <textarea
+                    id="question-input"
+                    class="input textarea"
+                    placeholder="Example: show all rows where department is Engineering and city is Paris"
+            ></textarea>
+            <div class="hint">
+                Supported patterns: simple filters, AND conditions, basic ORDER BY + LIMIT.
+            </div>
+
+            <div class="btn-row">
+                <button type="button" class="btn" id="show-rows-btn">
+                    📄 Show all rows
+                </button>
+                <button type="button" class="btn btn-primary" id="ask-btn">
+                    💬 Ask
+                </button>
+            </div>
+            <div class="hint" id="ask-message"></div>
+        </div>
+
+        <!-- Right column: Results -->
+        <div class="card results-card">
+            <div class="results-header-row">
+                <div style="display: flex; flex-direction: column; gap: 2px;">
+                    <div class="card-title">Results</div>
+                    <div class="results-summary" id="results-summary">
+                        No query executed yet.
+                    </div>
+                </div>
+                <div class="results-controls">
+                    <span class="results-badge" id="rows-count-badge">Rows: 0</span>
+                    <span class="results-badge" id="columns-count-badge">Columns: 0</span>
+                </div>
+            </div>
+
+            <div id="results-message" class="hint"></div>
+
+            <!-- Generated GraphQL query display -->
+            <div id="optimized-query-wrapper" style="display:none; margin-bottom: 8px;">
+                <div class="small-pill">Generated GraphQL query (approximate)</div>
+                <pre id="optimized-query" class="optimized-query"></pre>
+            </div>
+
+            <div class="results-container" id="results-container">
+                <!-- Table will be rendered here -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Base backend URL (your Spring Boot app)
+    const BASE_URL = "http://localhost:8081";
+
+    const uploadForm = document.getElementById("csv-upload-form");
+    const csvFileInput = document.getElementById("csv-file");
+    const uploadMessage = document.getElementById("upload-message");
+    const askInput = document.getElementById("question-input");
+    const askMessage = document.getElementById("ask-message");
+    const showRowsBtn = document.getElementById("show-rows-btn");
+    const askBtn = document.getElementById("ask-btn");
+    const resultsContainer = document.getElementById("results-container");
+    const resultsSummary = document.getElementById("results-summary");
+    const rowsCountBadge = document.getElementById("rows-count-badge");
+    const columnsCountBadge = document.getElementById("columns-count-badge");
+    const resultsMessage = document.getElementById("results-message");
+    const optimizedQueryWrapper = document.getElementById("optimized-query-wrapper");
+    const optimizedQueryEl = document.getElementById("optimized-query");
+
+    function setUploadMessage(text, type = "info") {
+        uploadMessage.textContent = text;
+        uploadMessage.className = "hint";
+        if (type === "success") {
+            uploadMessage.classList.add("message", "message-success");
+        } else if (type === "error") {
+            uploadMessage.classList.add("message", "message-error");
+        }
+    }
+
+    function setAskMessage(text, type = "info") {
+        askMessage.textContent = text;
+        askMessage.className = "hint";
+        if (type === "success") {
+            askMessage.classList.add("message", "message-success");
+        } else if (type === "error") {
+            askMessage.classList.add("message", "message-error");
+        }
+    }
+
+    function setResultsMessage(text, type = "info") {
+        resultsMessage.textContent = text;
+        resultsMessage.className = "hint";
+        if (type === "success") {
+            resultsMessage.classList.add("message", "message-success");
+        } else if (type === "error") {
+            resultsMessage.classList.add("message", "message-error");
+        }
+    }
+
+    function setOptimizedQuery(queryString) {
+        if (!queryString) {
+            optimizedQueryWrapper.style.display = "none";
+            optimizedQueryEl.textContent = "";
+            return;
+        }
+        optimizedQueryWrapper.style.display = "block";
+        optimizedQueryEl.textContent = queryString;
+    }
+
+    function clearResults() {
+        resultsContainer.innerHTML = "";
+        resultsSummary.textContent = "No query executed yet.";
+        rowsCountBadge.textContent = "Rows: 0";
+        columnsCountBadge.textContent = "Columns: 0";
+        setOptimizedQuery(null);
+    }
+
+    function renderRows(rows) {
+        if (!rows || rows.length === 0) {
+            clearResults();
+            resultsSummary.textContent = "No rows matched the query.";
+            return;
+        }
+
+        const columnSet = new Set();
+        rows.forEach(row => {
+            (row.cells || []).forEach(cell => {
+                columnSet.add(cell.columnName);
+            });
+        });
+
+        const columns = Array.from(columnSet);
+
+        const table = document.createElement("table");
+        const thead = document.createElement("thead");
+        const tbody = document.createElement("tbody");
+
+        // Header row
+        const headerRow = document.createElement("tr");
+        const thId = document.createElement("th");
+        thId.textContent = "Row ID";
+        headerRow.appendChild(thId);
+
+        columns.forEach(col => {
+            const th = document.createElement("th");
+            th.textContent = col;
+            headerRow.appendChild(th);
+        });
+        thead.appendChild(headerRow);
+
+        // Body rows
+        rows.forEach(row => {
+            const tr = document.createElement("tr");
+            const tdId = document.createElement("td");
+            tdId.textContent = row.id;
+            tr.appendChild(tdId);
+
+            const cellMap = {};
+            (row.cells || []).forEach(cell => {
+                cellMap[cell.columnName] = cell.value;
+            });
+
+            columns.forEach(col => {
+                const td = document.createElement("td");
+                td.textContent = cellMap[col] ?? "";
+                tr.appendChild(td);
+            });
+
+            tbody.appendChild(tr);
+        });
+
+        table.appendChild(thead);
+        table.appendChild(tbody);
+
+        resultsContainer.innerHTML = "";
+        resultsContainer.appendChild(table);
+
+        resultsSummary.textContent = `Showing ${rows.length} row(s) from CSV.`;
+        rowsCountBadge.textContent = `Rows: ${rows.length}`;
+        columnsCountBadge.textContent = `Columns: ${columns.length}`;
+    }
+
+    // 📌 Helper: build an "approximate" GraphQL query string
+    // This does NOT affect backend; it's only for display.
+    function buildGeneratedGraphqlFromQuestion(question) {
+        if (!question) return null;
+
+        const original = question.trim();
+        const lower = original.toLowerCase();
+
+        const baseFields = `id
+    cells {
+      columnName
+      value
+    }`;
+
+        let args = [];
+
+        // 1) Detect "top N rows"
+        const topMatch = lower.match(/top\s+(\d+)\s+rows?/);
+        if (topMatch) {
+            const n = topMatch[1];
+            args.push(`first: ${n}`);
+        }
+
+        // 2) Detect "order by <column> [asc|desc]"
+        const orderMatch = lower.match(/order by\s+([a-zA-Z_]+)\s*(asc|desc)?/);
+        if (orderMatch) {
+            const col = orderMatch[1];
+            const dir = (orderMatch[2] || "asc").toUpperCase();
+            args.push(`orderBy: { column: "${col}", direction: ${dir} }`);
+        }
+
+        // 3) Detect simple "where ... and ..." with "is"
+        const whereIndex = lower.indexOf("where");
+        let whereParts = [];
+        if (whereIndex !== -1) {
+            let afterWhere = lower.slice(whereIndex + 5).trim();
+
+            // cut at "order by" or "top" if present
+            const cutCandidates = [];
+            const obIdx = afterWhere.indexOf("order by");
+            if (obIdx !== -1) cutCandidates.push(obIdx);
+            const topIdx = afterWhere.indexOf("top ");
+            if (topIdx !== -1) cutCandidates.push(topIdx);
+
+            if (cutCandidates.length > 0) {
+                const minCut = Math.min(...cutCandidates);
+                afterWhere = afterWhere.slice(0, minCut).trim();
+            }
+
+            const conditions = afterWhere.split(/\sand\s/);
+            conditions.forEach(cond => {
+                cond = cond.trim();
+                // pattern: "department is engineering"
+                const isMatch = cond.match(/(\w+)\s+is\s+(.+)/);
+                if (isMatch) {
+                    const col = isMatch[1];
+                    const val = isMatch[2].trim().replace(/\.$/, "");
+                    whereParts.push(`${col}: "${val}"`);
+                }
+
+                // pattern: "experience greater than 3"
+                const gtMatch = cond.match(/(\w+)\s+greater than\s+(\d+)/);
+                if (gtMatch) {
+                    const col = gtMatch[1];
+                    const num = gtMatch[2];
+                    whereParts.push(`${col}_gt: ${num}`);
+                }
+            });
+        }
+
+        if (whereParts.length > 0) {
+            args.push(`where: { ${whereParts.join(", ")} }`);
+        }
+
+        // 4) Build final fake GraphQL query string
+        // We pretend we have something like:
+        // query {
+        //   rows(where: {...}, orderBy: {...}, first: N) { ... }
+        // }
+        let argsString = "";
+        if (args.length > 0) {
+            argsString = "(" + args.join(", ") + ")";
+        }
+
+        const graphql = `query {
+  rows${argsString} {
+    ${baseFields}
+  }
+}`;
+
+        return graphql;
+    }
+
+    // Upload CSV handler
+    uploadForm.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        const file = csvFileInput.files[0];
+        if (!file) {
+            setUploadMessage("Please select a CSV file first.", "error");
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append("file", file);
+
+        try {
+            setUploadMessage("Uploading CSV...", "info");
+            const res = await fetch(BASE_URL + "/api/upload-csv", {
+                method: "POST",
+                body: formData
+            });
+            const text = await res.text();
+            if (res.ok) {
+                setUploadMessage(text || "CSV uploaded successfully.", "success");
+            } else {
+                setUploadMessage(text || "Failed to upload CSV.", "error");
+            }
+        } catch (err) {
+            console.error(err);
+            setUploadMessage("Error while uploading CSV: " + err.message, "error");
+        }
+    });
+
+    // Show all rows handler
+    showRowsBtn.addEventListener("click", async () => {
+        setAskMessage("");
+        setResultsMessage("Loading all rows...", "info");
+        setOptimizedQuery(null);
+
+        const query = `
+            {
+              rows {
+                id
+                cells {
+                  columnName
+                  value
+                }
+              }
+            }
+        `;
+
+        try {
+            const res = await fetch(BASE_URL + "/graphql", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({ query })
+            });
+
+            const data = await res.json();
+            console.log("rows response:", data);
+
+            if (data.errors) {
+                console.error(data.errors);
+                setResultsMessage("GraphQL error: " + data.errors[0].message, "error");
+                clearResults();
+                return;
+            }
+
+            const rows = data.data?.rows || [];
+            renderRows(rows);
+            setResultsMessage("Loaded all rows from the current CSV.", "success");
+        } catch (err) {
+            console.error(err);
+            setResultsMessage("Error while fetching rows: " + err.message, "error");
+            clearResults();
+        }
+    });
+
+    // Ask question handler
+    askBtn.addEventListener("click", async () => {
+        const question = askInput.value.trim();
+        if (!question) {
+            setAskMessage("Please type a question first.", "error");
+            return;
+        }
+
+        setAskMessage("Sending question to backend...", "info");
+        setResultsMessage("");
+        setOptimizedQuery(null);
+
+        const query = `
+            query Ask($q: String!) {
+              ask(question: $q) {
+                id
+                cells {
+                  columnName
+                  value
+                }
+              }
+            }
+        `;
+
+        try {
+            const res = await fetch(BASE_URL + "/graphql", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    query,
+                    variables: { q: question }
+                })
+            });
+
+            const data = await res.json();
+            console.log("ask response:", data);
+
+            if (data.errors) {
+                console.error(data.errors);
+                setAskMessage("GraphQL error: " + data.errors[0].message, "error");
+                clearResults();
+                return;
+            }
+
+            const rows = data.data?.ask || [];
+
+            // 🔹 NEW: build and show the "generated" GraphQL query for this question
+            const generatedQuery = buildGeneratedGraphqlFromQuestion(question);
+            setOptimizedQuery(generatedQuery);
+
+            renderRows(rows);
+
+            if (rows.length === 0) {
+                setAskMessage("No matching rows found for this question.", "info");
+                setResultsMessage("No rows matched the question.", "info");
+            } else {
+                setAskMessage("Query executed successfully.", "success");
+                setResultsMessage("Showing rows matching your question.", "success");
+            }
+        } catch (err) {
+            console.error(err);
+            setAskMessage("Error while executing query: " + err.message, "error");
+            clearResults();
+        }
+    });
+</script>
+</body>
+</html>
